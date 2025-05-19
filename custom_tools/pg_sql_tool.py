@@ -1,4 +1,5 @@
 from pg import DB
+from typing import Any, Union
 
 
 class PgSQLTool:
@@ -34,7 +35,11 @@ class PgSQLTool:
         except Exception as e:
             print(f"Failed to connect to database: {e}")
 
-    def find_tables(self) -> list[str]:
+    def find_tables(
+        self,
+        tool_input: Union[str, dict[str, Any]],
+        **kwargs: Any,
+    ) -> list[str]:
         """
         Retrieves a list of table names from the 'public' schema in the database.
 

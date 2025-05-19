@@ -4,10 +4,11 @@ from pydantic import BaseModel
 # from langchain_openai import ChatOpenAI
 # from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from tools import search_tool, find_tables_tool_pgsql
+from langchain_core.messages import HumanMessage, AIMessage
 
 load_dotenv()
 
@@ -26,6 +27,8 @@ gemini = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash",
 )
 
+chat_history = []
+
 # open file from  this location prompts/gemini.txt and save its content to a variable
 gemini_prompt = ""
 with open("./prompts/gemini.txt", "r") as file:
@@ -38,8 +41,9 @@ prompt = ChatPromptTemplate.from_messages(
         (
             "system",
             """
+            {gemini_prompt}\n
+            Answer the user query.
             {format_instructions}
-            {gemini_prompt}
             """,
         ),
         ("placeholder", "{chat_history}"),
@@ -49,6 +53,8 @@ prompt = ChatPromptTemplate.from_messages(
 ).partial(
     format_instructions=parser.get_format_instructions(),
     gemini_prompt=gemini_prompt,
+    chat_history=chat_history,
+    agent_scratchpad="",
 )
 
 tools = [search_tool, find_tables_tool_pgsql]
@@ -65,12 +71,13 @@ def runGemini(prompt: str) -> dict[str, any]:
         tools=tools,
         verbose=True,
     )
-    print(agent_executor.tools)
     response = agent_executor.invoke(
         {
             "query": prompt,
-            # "chat_history": "",
-            # "agent_scratchpad": "",
+            "chat_history": chat_history,
+            "gemini_prompt": gemini_prompt,
+            "format_instructions": parser.get_format_instructions(),
+            "agent_scratchpad": "",
         }
     )
     return response
@@ -80,11 +87,20 @@ firstTime = True
 
 while True:
     query = input(firstTime and "How can I help you?: " or "Tell me more: ")
+    chat_history.append(HumanMessage(content=query))
     response = runGemini(query)
-    # Print the response
-    # print(response)
     try:
         structured_response = parser.parse(response.get("output"))
+        chat_history.append(
+            AIMessage(
+                content=structured_response.summary,
+                additional_kwargs={
+                    "sources": structured_response.sources,
+                    "tools_used": structured_response.tools_used,
+                    "research_time": structured_response.research_time,
+                },
+            )
+        )
         print(structured_response.summary)
         firstTime = False
     except Exception as e:
