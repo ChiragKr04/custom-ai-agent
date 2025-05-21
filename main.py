@@ -7,7 +7,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain.agents import create_tool_calling_agent, AgentExecutor
-from tools import search_tool, find_tables_tool_pgsql
+from tools import search_tool, find_tables_tool_pgsql, find_table_column_name_and_datatype
 from langchain_core.messages import HumanMessage, AIMessage
 
 load_dotenv()
@@ -57,7 +57,7 @@ prompt = ChatPromptTemplate.from_messages(
     agent_scratchpad="",
 )
 
-tools = [search_tool, find_tables_tool_pgsql]
+tools = [find_tables_tool_pgsql, find_table_column_name_and_datatype]
 agent = create_tool_calling_agent(
     llm=gemini,
     tools=tools,
