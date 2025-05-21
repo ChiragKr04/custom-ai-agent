@@ -1,13 +1,13 @@
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
-# from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI
 # from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain.agents import create_tool_calling_agent, AgentExecutor
-from tools import search_tool, find_tables_tool_pgsql, find_table_column_name_and_datatype
+from tools import search_tool, find_tables_tool_pgsql, find_table_column_name_and_datatype, run_sql_query
 from langchain_core.messages import HumanMessage, AIMessage
 
 load_dotenv()
@@ -21,18 +21,20 @@ class ResearchResponse(BaseModel):
     research_time: str
 
 
-# chatGPT = ChatOpenAI()
-# claude = ChatAnthropic()
-gemini = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash",
+gemini = ChatOpenAI(
+    model="gpt-4.1-nano",
 )
+# claude = ChatAnthropic()
+# gemini = ChatGoogleGenerativeAI(
+#     model="gemini-2.0-flash",
+# )
 
 chat_history = []
 
 # open file from  this location prompts/gemini.txt and save its content to a variable
 gemini_prompt = ""
-with open("./prompts/gemini.txt", "r") as file:
-    gemini_prompt = file.read()
+# with open("./prompts/chatgpt_2025_03_24.txt", "r") as file:
+#     gemini_prompt = file.read()
 
 parser = PydanticOutputParser(pydantic_object=ResearchResponse)
 
@@ -42,7 +44,7 @@ prompt = ChatPromptTemplate.from_messages(
             "system",
             """
             {gemini_prompt}\n
-            Answer the user query.
+            You are only allowed to give your response in the given format, you are not allowed to give reponse in plain text only use the format given below.
             {format_instructions}
             """,
         ),
@@ -57,7 +59,7 @@ prompt = ChatPromptTemplate.from_messages(
     agent_scratchpad="",
 )
 
-tools = [find_tables_tool_pgsql, find_table_column_name_and_datatype]
+tools = [find_tables_tool_pgsql, find_table_column_name_and_datatype, run_sql_query]
 agent = create_tool_calling_agent(
     llm=gemini,
     tools=tools,

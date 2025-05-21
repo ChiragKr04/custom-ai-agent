@@ -32,3 +32,9 @@ find_table_column_name_and_datatype = Tool(
     description="Useful for when you need to find all the columns and column datatypes of a particular table inside postgresql db. You just need to pass table name as table_name=whatever_table_name is and it will return list[dict[str, Any]]",
     func=__pgSQL.find_table_column_name_and_datatype,
 )
+
+run_sql_query = Tool(
+    name="run_sql_query",
+    description="Useful for when you need to run a sql query on the postgresql db. This tool will run sql query in a read only transaction. You just need to pass the query as query=whatever_query_you_want_to_run",
+    func=__pgSQL.run_sql_query,
+)
